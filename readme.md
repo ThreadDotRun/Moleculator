@@ -43,7 +43,7 @@ source venv/bin/activate  # On Windows, use: venv\Scripts\activate
 
 3. Install required packages:
 ```bash
-pip install quart quart-cors aiohttp transformers
+pip install quart quart-cors aiohttp 
 ```
 
 ## Project Structure
