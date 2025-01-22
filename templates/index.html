@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Molecule Viewer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.0.3/3Dmol-min.js"></script>
+	<style>
+
+	</style>
+</head>
+<body>
+    <div class='banner'>
+        Moleculator
+    </div>
+	<form method="POST">
+		<input type="text" name="smiles" placeholder="Enter SMILES string" required>
+		<input type="submit" value="Search">
+	</form>
+
+	{% if molecules %}
+		{% for molecule in molecules %}
+			{% if molecule.smiles %}
+			<div class="molecule-entry">
+				<div class="viewer_container">
+					<div id="viewer_{{ loop.index }}" class="mol-viewer">
+						<div class="loading">Loading molecule...</div>
+					</div>
+				</div>
+				<div class="molecule-info">
+					<h3>Molecule ID: {{ molecule.id }}</h3>
+					<p>SMILES: {{ molecule.smiles }}</p>
+					{% if molecule.properties %}
+					<div class="properties">
+						<h4>Properties:</h4>
+						<ul>
+						{% for key, value in molecule.properties.items() %}
+							{% if value is not none %}
+							<li><strong>{{ key }}:</strong> {{ value }}</li>
+							{% endif %}
+						{% endfor %}
+						</ul>
+					</div>
+					{% endif %}
+				</div>
+			</div>
+			{% endif %}
+		{% endfor %}
+
+		<script>
+			async function convertSMILEStoMOL(smiles) {
+				// Using the NCI Chemical Identifier Resolver service
+				const url = `https://cactus.nci.nih.gov/chemical/structure/${encodeURIComponent(smiles)}/sdf`;
+				try {
+					const response = await fetch(url);
+					if (!response.ok) throw new Error('Conversion failed');
+					return await response.text();
+				} catch (error) {
+					console.error('Error converting SMILES:', error);
+					throw error;
+				}
+			}
+
+			$(document).ready(function() {                
+				$('.molecule-entry').each(async function(index) {
+					try {
+						const viewerId = `viewer_${index + 1}`;
+						const smiles = $(this).find('.molecule-info p').text().split(': ')[1];
+						const element = document.getElementById(viewerId);
+						
+						if (!element) {
+							console.error(`Element #${viewerId} not found`);
+							return;
+						}
+
+						// Convert SMILES to MOL format
+						const molData = await convertSMILEStoMOL(smiles);
+						
+						// Initialize viewer
+						let viewer = $3Dmol.createViewer(element, {
+							backgroundColor: 'white',
+							width: element.parentElement.offsetWidth,
+							height: 400
+						});
+						
+						// Add the molecule model using MOL format
+						viewer.addModel(molData, "mol");
+                        viewer.setBackgroundColor("#333"); // Replace 'black' with your desired color (e.g., 'blue', '#FF5733')
+						
+						// Style the molecule
+						viewer.setStyle({}, {
+							stick: {},
+							sphere: { radius: 0.5 }
+						});
+						
+						// Center and render
+						viewer.zoomTo();
+						viewer.render();
+						
+						// Clear loading message
+						$(element).find('.loading').remove();
+					} catch (error) {
+						console.error('Error displaying molecule:', error);
+						$(`#${viewerId}`).html('Error loading molecule');
+					}
+				});
+			});
+		</script>
+	{% endif %}
+    <div><img src="{{ url_for('static', filename='spinner.gif') }}" id='spinner'>
+</body>
+</html>
