@@ -63,7 +63,7 @@ moleculator/
 
 1. Start the server:
 ```bash
-python app.py
+python Web_Server.py
 ```
 
 2. Open your web browser and navigate to `http://localhost:5000`
